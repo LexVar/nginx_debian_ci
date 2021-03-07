@@ -106,7 +106,7 @@ jobs:
           rm debian/modules/*.tar.gz
 
       - name:  Set configuration for build
-        run:
+        run: |
           working-directory: $GITHUB_WORKSPACE/nginx-*
           $GITHUB_WORKSPACE/variables
           # Add necessary flag to rules file, indicating modules path
@@ -122,7 +122,7 @@ jobs:
 
       # Run build script
       - name: Build Nginx deb package
-        run:
+        run: |
           working-directory: $GITHUB_WORKSPACE/nginx-*
           $GITHUB_WORKSPACE/variables
           # Document changes to changelog
