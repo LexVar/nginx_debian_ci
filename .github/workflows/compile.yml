@@ -1,0 +1,126 @@
+# BASIC WORKFLOW
+name: Build Nginx
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      nginx_version:
+        description: 'Nginx Version'
+        required: true
+        default: '1.18.0-2'
+      nginx_dist:
+        description: 'Debian distribution codename'
+        required: true
+        default: 'buster'
+      codename:
+        description: 'New package codename'
+        required: true
+        default: 'vts10'
+      package_name:
+        description: 'New package name'
+        required: true
+        default: 'nginx-with-vts'
+      modules_name:
+        description: 'List of modules'
+        required: true
+        default: 'nginx-module-vts'
+      modules_url:
+        description: 'List of modules download URLs'
+        required: true
+        default: 'https://github.com/vozlt/nginx-module-vts/archive/v0.1.18.tar.gz'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    env:
+      # Nginx version variables
+      NGINX_VERSION: ${{ github.event.inputs.nginx_version }}
+      NGINX_DIST: ${{ github.event.inputs.nginx_dist }}
+      # Codename for built package
+      CODENAME: ${{ github.event.inputs.codename }} 
+      # Built package name
+      PKG_NAME: ${{ github.event.inputs.package_name }}
+      # List of modules names - only for changelog purposes
+      MODULES_NAME: ${{ github.event.inputs.modules_name }}
+      # List of modules URL
+      MODULES_URL: ${{ github.event.inputs.modules_url }}
+      # Name and email for changelog
+      USER_NAME: ${{ secrets.USER_NAME }}
+      USER_EMAIL: ${{ secrets.USER_EMAIL }}
+
+    container:
+      image: debian:buster
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    # Steps will now run on the container
+    steps:
+      # Check out repository
+      - uses: actions/checkout@v2
+
+      - name: Log container information
+        run: cat /etc/os-release
+
+      - name: Source default variable values, only if empty
+        run: source $(GITHUB_WORKSPACE)/variables
+
+      - name: Install nginx
+        run: |
+          # Install necessary packages for build
+          apt-get update
+          apt-get install -y curl gnupg2 ca-certificates dpkg-dev wget dh-make build-essential autoconf autotools-dev debhelper dh-systemd dpkg-dev quilt lsb-release libssl-dev libpcre3-dev zlib1g-dev devscripts
+          # Add nginx debian repo
+          echo "deb http://nginx.org/packages/debian `lsb_release -cs` nginx" > /etc/apt/sources.list.d/nginx.list
+          echo "deb-src http://nginx.org/packages/debian `lsb_release -cs` nginx" >> /etc/apt/sources.list.d/nginx.list
+          curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
+          apt-key fingerprint ABF5BD827BD9BF62
+          apt-get update
+
+      - name: Download nginx and modules source
+        run: |
+          # Download nginx source files
+          apt source nginx=$NGINX_VERSION~$NGINX_DIST
+          cd nginx-*/
+          # Make directory modules if it does not exist
+          mkdir debian/modules
+          # Download modules to debian/modules dir
+          wget $MODULES_URL -P debian/modules/
+          cat debian/modules/*.tar.gz | tar zxf - -i -C debian/modules/
+          # Clean archive files
+          rm debian/modules/*.tar.gz
+
+      - name:  Set configuration for build
+        run: |
+          # Add necessary flag to rules file, indicating modules path
+          sed -i "s:\.\/configure --:&add-module=\$(BASEDIR)/debian/modules/\* --:g" debian/rules
+          # Add transition package to debian/control file according to guide
+          # https://wiki.debian.org/RenamingPackages
+          sed -i "0,/Replaces:/ s//Breaks:nginx\n& nginx\, /" debian/control
+          sed -i "0,/Package. nginx/ s//Package:$PKG_NAME/" debian/control
+          sed -i  "/Package:$PKG_NAME/i Package:nginx\nDepends:$PKG_NAME\, \$\{misc:Depends\}\nArchitecture:all\nPriority:optional\nSection:oldlibs\nDescription:transional package\n This is a transitional package. It can safely be removed\.\n" debian/control
+          # Hack for missing control file in debian/nginx/DEBIAN directory
+          # There probably is a better fix
+          sed -i "s:dh_builddeb:cp debian/$PKG_NAME/DEBIAN/control debian/nginx/DEBIAN/\n\t&:g" debian/rules
+
+      # Run build script
+      - name: Build Nginx deb package
+        run: |
+          # Document changes to changelog
+          DEBFULLNAME="$USER_NAME" DEBEMAIL="$USER_EMAIL" dch -v $NGINX_VERSION~$CODENAME "Included modules $MODULES_NAME"
+          # Build packages
+          dpkg-buildpackage
+
+      # Uploads the output pdf file to artefacts
+      - uses: actions/upload-artifact@v2
+        with:
+          name: nginx-deb # output file
+          path: '**.deb'   # path to file
