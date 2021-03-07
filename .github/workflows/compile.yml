@@ -76,8 +76,8 @@ jobs:
       - name: Log container information
         run: cat /etc/os-release
 
-      - name: Set default env variable, only if empty
-        run: $GITHUB_WORKSPACE/variables
+      # - name: Set default env variable, only if empty
+      #   run:
 
       - name: Install nginx
         run: |
@@ -93,6 +93,7 @@ jobs:
 
       - name: Download nginx and modules source
         run: |
+          $GITHUB_WORKSPACE/variables
           # Download nginx source files
           apt source nginx=$NGINX_VERSION~$NGINX_DIST
           cd nginx-*/
@@ -105,7 +106,9 @@ jobs:
           rm debian/modules/*.tar.gz
 
       - name:  Set configuration for build
-        run: |
+        run:
+          working-directory: $GITHUB_WORKSPACE/nginx-*
+          $GITHUB_WORKSPACE/variables
           # Add necessary flag to rules file, indicating modules path
           sed -i "s:\.\/configure --:&add-module=\$(BASEDIR)/debian/modules/\* --:g" debian/rules
           # Add transition package to debian/control file according to guide
@@ -119,7 +122,9 @@ jobs:
 
       # Run build script
       - name: Build Nginx deb package
-        run: |
+        run:
+          working-directory: $GITHUB_WORKSPACE/nginx-*
+          $GITHUB_WORKSPACE/variables
           # Document changes to changelog
           DEBFULLNAME="$USER_NAME" DEBEMAIL="$USER_EMAIL" dch -v $NGINX_VERSION~$CODENAME "Included modules $MODULES_NAME"
           # Build packages
@@ -129,4 +134,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: nginx-deb # output file
-          path: '**.deb'   # path to file
+          path: $GITHUB_WORKSPACE/**.deb   # path to file
