@@ -70,8 +70,8 @@ jobs:
       - name: Log container information
         run: cat /etc/os-release
 
-      - name: Source default variable values, only if empty
-        run: source $GITHUB_WORKSPACE/variables
+      - name: Set default env variable, only if empty
+        run: $GITHUB_WORKSPACE/variables
 
       - name: Install nginx
         run: |
