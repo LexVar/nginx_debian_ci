@@ -4,10 +4,10 @@ name: Build Nginx
 # Controls when the action will run. 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  # push:
+  #   branches: [ master ]
+  # pull_request:
+  #   branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -70,9 +70,6 @@ jobs:
       - name: Log container information
         run: cat /etc/os-release
 
-      # - name: Set default env variable, only if empty
-      #   run:
-
       - name: Install nginx
         run: |
           # Install necessary packages for build
@@ -87,7 +84,6 @@ jobs:
 
       - name: Download nginx and modules source
         run: |
-          $GITHUB_WORKSPACE/variables
           # Download nginx source files
           apt source nginx=$NGINX_VERSION~$NGINX_DIST
           cd nginx-*/
@@ -102,7 +98,6 @@ jobs:
       - name:  Set configuration for build
         run: |
           cd $GITHUB_WORKSPACE/nginx-*
-          $GITHUB_WORKSPACE/variables
           # Add necessary flag to rules file, indicating modules path
           sed -i "s:\.\/configure --:&add-module=\$(BASEDIR)/debian/modules/\* --:g" debian/rules
           # Add transition package to debian/control file according to guide
@@ -118,7 +113,6 @@ jobs:
       - name: Build Nginx deb package
         run: |
           cd $GITHUB_WORKSPACE/nginx-*
-          $GITHUB_WORKSPACE/variables
           # Document changes to changelog
           DEBFULLNAME="$USER_NAME" DEBEMAIL="$USER_EMAIL" dch -v $NGINX_VERSION~$CODENAME "Included modules $MODULES_NAME"
           # Build packages
@@ -128,4 +122,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: nginx-deb # output file
-          path: $GITHUB_WORKSPACE/**.deb   # path to file
+          path: '*.deb'   # path to file
