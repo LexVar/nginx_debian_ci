@@ -44,22 +44,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Nginx version variables
-      # NGINX_VERSION: ${{ github.event.inputs.nginx_version }}
-      # NGINX_DIST: ${{ github.event.inputs.nginx_dist }}
-      NGINX_VERSION: 1.18.0-2
-      NGINX_DIST: buster
+      NGINX_VERSION: ${{ github.event.inputs.nginx_version }}
+      NGINX_DIST: ${{ github.event.inputs.nginx_dist }}
       # Codename for built package
-      # CODENAME: ${{ github.event.inputs.codename }}
-      CODENAME: vts10
+      CODENAME: ${{ github.event.inputs.codename }}
       # Built package name
-      # PKG_NAME: ${{ github.event.inputs.package_name }}
-      PKG_NAME: nginx-with-vts
+      PKG_NAME: ${{ github.event.inputs.package_name }}
       # List of modules names - only for changelog purposes
-      # MODULES_NAME: ${{ github.event.inputs.modules_name }}
-      MODULES_NAME: nginx-module-vts
+      MODULES_NAME: ${{ github.event.inputs.modules_name }}
       # List of modules URL
-      # MODULES_URL: ${{ github.event.inputs.modules_url }}
-      MODULES_URL: "https://github.com/vozlt/nginx-module-vts/archive/v0.1.18.tar.gz"
+      MODULES_URL: ${{ github.event.inputs.modules_url }}
       # Name and email for changelog
       USER_NAME: ${{ secrets.USER_NAME }}
       USER_EMAIL: ${{ secrets.USER_EMAIL }}
@@ -107,7 +101,7 @@ jobs:
 
       - name:  Set configuration for build
         run: |
-          working-directory: $GITHUB_WORKSPACE/nginx-*
+          cd $GITHUB_WORKSPACE/nginx-*
           $GITHUB_WORKSPACE/variables
           # Add necessary flag to rules file, indicating modules path
           sed -i "s:\.\/configure --:&add-module=\$(BASEDIR)/debian/modules/\* --:g" debian/rules
@@ -123,7 +117,7 @@ jobs:
       # Run build script
       - name: Build Nginx deb package
         run: |
-          working-directory: $GITHUB_WORKSPACE/nginx-*
+          cd $GITHUB_WORKSPACE/nginx-*
           $GITHUB_WORKSPACE/variables
           # Document changes to changelog
           DEBFULLNAME="$USER_NAME" DEBEMAIL="$USER_EMAIL" dch -v $NGINX_VERSION~$CODENAME "Included modules $MODULES_NAME"
