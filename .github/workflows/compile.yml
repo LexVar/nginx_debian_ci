@@ -71,7 +71,7 @@ jobs:
         run: cat /etc/os-release
 
       - name: Source default variable values, only if empty
-        run: source $(GITHUB_WORKSPACE)/variables
+        run: source $GITHUB_WORKSPACE/variables
 
       - name: Install nginx
         run: |
