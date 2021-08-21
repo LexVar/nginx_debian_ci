@@ -1,35 +1,13 @@
 # BASIC WORKFLOW
-name: Manual package build
+name: Automatic package build
 
 # Controls when the action will run. 
 on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-    inputs:
-      nginx_version:
-        description: 'Nginx Version'
-        required: true
-        default: '1.18.0-2'
-      nginx_dist:
-        description: 'Debian distribution codename'
-        required: true
-        default: 'buster'
-      codename:
-        description: 'New package codename'
-        required: true
-        default: 'vts10'
-      package_name:
-        description: 'New package name'
-        required: true
-        default: 'nginx-with-vts'
-      modules_name:
-        description: 'List of modules'
-        required: true
-        default: 'nginx-module-vts'
-      modules_url:
-        description: 'List of modules download URLs'
-        required: true
-        default: 'https://github.com/vozlt/nginx-module-vts/archive/v0.1.18.tar.gz'
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -38,16 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Nginx version variables
-      NGINX_VERSION: ${{ github.event.inputs.nginx_version }}
-      NGINX_DIST: ${{ github.event.inputs.nginx_dist }}
+      NGINX_VERSION: 1.18.0-2
+      NGINX_DIST: buster
       # Codename for built package
-      CODENAME: ${{ github.event.inputs.codename }}
+      CODENAME: vts10
       # Built package name
-      PKG_NAME: ${{ github.event.inputs.package_name }}
+      PKG_NAME: nginx-with-vts
       # List of modules names - only for changelog purposes
-      MODULES_NAME: ${{ github.event.inputs.modules_name }}
+      MODULES_NAME: nginx-module-vts
       # List of modules URL
-      MODULES_URL: ${{ github.event.inputs.modules_url }}
+      MODULES_URL: "https://github.com/vozlt/nginx-module-vts/archive/v0.1.18.tar.gz"
       # Name and email for changelog
       USER_NAME: ${{ secrets.USER_NAME }}
       USER_EMAIL: ${{ secrets.USER_EMAIL }}
